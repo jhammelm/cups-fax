@@ -1,0 +1,9 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=Fax/PDF-Print (CUPS)
+Comment=Fax/PDF-Print-Tool
+Exec=/usr/lib/cups/backend/faxprint %f
+Terminal=false
+Type=Application
+MimeType=application/x-faxprint;
+Categories=Office;

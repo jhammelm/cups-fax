@@ -1,0 +1,212 @@
+
+*** 20260219_v3.0.9_demo: Hinweise zur optimalen Anwendung der Wandelwege für
+                          den FAX-Versand:
+
+Das Problem bei Floyd-Steinberg- od. Graustufen/Grey-Dithering ist, dass Schrift
+unscharf wird, da die Ränder ausfransen. Gibt es eine Möglichkeit, das zu
+verbessern?
+
+Das Problem ist systemimmanent: Das gesamte Dokument wird als "Bild" behandelt
+und wendet den Dithering-Algorithmus unterschiedslos auf Text und Grafik an.
+Um das "Ausfransen" (Aliasing-Effekte) zu minimieren, können Sie folgende
+Strategien nutzen:
+
+- Vermeidung von Graustufen: Der Algorithmus springt nur an, wenn der Kontrast
+  nicht binär ist. Erstellen Sie Ihr Dokument in reinem Schwarz-Weiß (1-Bit).
+  Achten Sie darauf, dass die Schriftfarbe exakt #000000 oder #111111 ist und
+  kein Anti-Aliasing (Kantenglättung) vom Textprogramm verwendet wird.
+
+- Hoher nativer Kontrast: Wenn Sie Bilder/PDFs erstellen, erhöhen Sie vorab den
+  Kontrast extrem und reduzieren Sie die Helligkeit, bis die Buchstaben "hart"
+  schwarz auf weiß stehen.
+
+- Formatwahl: Nutzen Sie für den Upload/Druck bevorzugt PNG-Dateien statt JPG.
+  JPG erzeugt Kompressionsartefakte an Kanten, die der Dithering-Algorithmus
+  fälschlicherweise als Graustufen interpretiert und in Punkte zerlegt.
+
+- Schriftwahl: Verwenden Sie serifenlose Schriften (z.B. Arial, Helvetica) in
+  einer Größe von mindestens 10-12 Punkt. Serifen und sehr dünne Schriftschnitte
+  leiden am stärksten unter der Punktstreuung.
+
+- Auflösung anpassen: Skalieren Sie das Bild beim Drucken exakt auf die FAX-
+  Zielauflösung (204x196 dpi, ist der Default). So verhindern Sie, dass das Bild
+  intern nochmals resampelt werden muss, was erneutes Dithering auslösen kann.
+
+
+*** 20260218_v3.0.9_demo: Bugfixes, Hinweise zu lokale Konfiguration:
+
+Es existieren nun 3 Möglichkeiten, Standard-Parameter in Konfigurationsdateien
+zu setzen wie folgt:
+
+1) Global in /etc/cups/cups-fax.conf für alle Benutzer des Rechners gemeinsam.
+
+2) Im Verzeichnis des Benutzers: ~/.cups-fax.conf: hier können die relevanten
+   Parameter wie auch die globale in /etc/cups/cups-fax.conf gesetzt werden:
+
+   Endpoint      http://localhost:8080/ws-cups-fax/WS
+   AuthUser      max.mustermann@test.de
+   AuthPwd       xxx
+   #FaxNumber
+   FaxHeader     Firma Kopfzeile
+   SendingFaxID  Firma Absenderkennung
+   EMailAddress  max.mustermann2@test.de
+   FaxResolution NORM
+   FaxDelay      1
+   FaxMaxRetry   1
+
+3) In der Konfigurationsdatei ~/.cups/lpoptions: wird über das Kommando lpoptions
+   gesetzt oder gelesen:
+
+   Anzeigen: lpoptions -d CUPS-FAX
+   (siehe auch https://manpages.ubuntu.com/manpages/resolute//de/man1/lpoptions.1.html)
+
+   Setzen: z.B. lpoptions -d CUPS-FAX -o AuthUser=max.mustermann@test.de -o AuthPwd=xxx -o FaxHeader=Kopfzeile
+
+   Zuerst wird die globale gelesen, danach die in lpoptions und dann zuletzt die
+   lokale in .cups-fax.conf des Benutzers, falls vorhanden. Der zuletzt gesetzte
+   Wert in dieser Reihenfolge wird verwendet.
+
+   Senden: z.B. lpr -P CUPS-FAX -o FaxNumber=0711123456789 test.pdf
+   (siehe auch https://manpages.ubuntu.com/manpages/resolute//de/man1/lpr.1.html)
+
+
+
+*** 20260105_v3.0.2_demo: 1. (interne) Testversion zur Demonstration:
+
+* Installation
+
+RPM-Paket cups-fax-3.0.2-1-suse156.x86_64.rpm wurde für Leap 15.6 kompiliert.
+
+Für andere Systeme kann mit
+
+   rpmbuild -ta cups-fax.tar.gz
+
+oder falls die GSOAP-Version nicht passt (als root):
+
+   tar xvzf cups-fax.tar.gz
+   cd cups-fax
+   make stub
+   make clean
+   cd ..
+   tar cvzf cups-fax.tar.gz cups-fax/
+   rpmbuild -ta cups-fax.tar.gz
+
+ein neues RPM-Paket erstellt werden. Hierzu wird benötigt:
+
+BuildRequires:  gcc7
+BuildRequires:  cups-devel >= 2.2
+BuildRequires:  gsoap-devel >= 2.8
+Requires:       cups-client >= 2.2
+Requires:       ghostscript >= 9.50
+Requires:       python3 >= 3.6
+
+Installiert wird das Paket mit
+
+   sudo rpm -ivh cups-fax-3.0.2-1-suseXXX.x86_64.rpm
+
+
+* Konfiguration
+
+  Die Konfiguration der Defaultwerte ist in /etc/cups/cups-fax.conf oder
+  ~/.cups-fax.conf ggf. anzupassen mit:
+
+     sudo vi /etc/cups/cups-fax.conf
+
+  oder
+
+     vi ~/.cups-fax.conf
+
+  oder über die Einstellungen des Druckdialog faxprint:
+
+  Endpoint      http://localhost:8080/ws-echo/WS
+  AuthUser      max.mustermann@test.de
+  AuthPwd       xxx
+  FaxHeader     Firma Kopfzeile
+  SendingFaxID  Firma Absenderkennung
+  EMailAddress  max.mustermann2@test.de
+  FaxResolution NORM
+  FaxDelay      1
+  FaxMaxRetry   1
+
+- Hinweis: neben allgemeinen Schreib- und Leserechten (chmod/chgrp) ist zu
+  prüfen:
+
+  * Ist AppArmor aktiv:
+
+  sudo vi /etc/apparmor.d/local/usr.sbin.cupsd
+
+  owner @{HOME}/cups-fax/* rw,
+  owner @{HOME}/* rw,
+
+  sudo systemctl reload apparmor
+  sudo systemctl restart cups
+
+  * Ist SELINUX aktiv, dann muss die Berechtigung zum
+  Lesen der Datei gesetzt werden:
+
+  sudo chcon -t cupsd_rw_t /home/<user>/.cups-fax.conf
+  sudo chcon -t var_spool_t /home/<user>/.cups-fax.conf
+
+  sudo semanage fcontext -a -t var_spool_t "/home/<user>/.cups-fax.conf"
+  sudo semanage fcontext -a -t var_spool_t "/home/<user>/cups-fax(/.*)?"
+
+  * Ebenso ist das Sandboxing von cups zu prüfen:
+
+  sudo systemctl cat cups
+
+     [Service]
+     ...
+     ProtectHome=read-only od. ProtectHome=true
+
+  Wenn Lesen erlaubt ist, reicht es aus, um ~/.cups-fax.conf lesen zu können.
+  Zum Ändern, so dass z.B. PDF in ~/cups-fax/ gespeichert werden kann, dann
+  muss folgendes gesetzt werden:
+
+  sudo systemctl edit cups
+
+     [Service]
+     ProtectHome=false
+
+  sudo systemctl restart cups
+
+
+* Anleitung
+
+- Ab cups 2.4 (Tumbleweed / Leap 16) kann die Faxnummer direkt über den System-
+  dialog des Druckdienstes angegeben werden. Andere Druckdialoge von anderen
+  Anwendungen und/oder Browsern haben in der Regel kein Eingabefeld für die
+  Faxnummer.
+
+- Wird Preview=Yes gesetzt, dann wird die gewandelte FAX-Vorlage an die hinter-
+  legte EMail-Adresse zur Ansicht gesendet.
+
+- Wird keine Faxnummer (und Preview=No) angegeben, wird "nur" eine PDF Datei
+  in /var/spool/cups-fax/<user> erstellt.
+
+  Diese PDF Datei kann anschließend ggf. über den Druckdialog faxprint von
+  cups-fax versendet werden als FAX wie folgt:
+
+   faxprint <filename> [<faxnumber>]
+
+  Beide Parameter sind optional und können im Dialog gesetzt oder bzw. geändert
+  werden.
+
+  Alternativ kann das FAX über die Kommandozeile versendet werden: z.B.
+
+   lpr -P CUPS-FAX -o FaxNumber=49711123456789 -o FaxResolution=HIGH -o FaxMaxRetry=3 <filename>
+
+- Das Ergebnis des Versand kann in /var/log/cups/cups-fax-CUPS-FAX_log über
+
+   sudo less /var/log/cups/cups-fax-CUPS-FAX_log
+
+  eingesehen werden.
+
+- Ein Protokoll des Versand wird an die in cups-fax.conf angegebene E-Mail-
+  Adresse gesendet.
+
+
+
+*** Kontakt:
+
+   Jürgen Hammelmann
+   j.hammelmann@gtc.net

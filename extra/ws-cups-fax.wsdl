@@ -1,0 +1,208 @@
+<?xml version='1.0' encoding='UTF-8'?><!-- Published by JAX-WS RI (https://github.com/eclipse-ee4j/metro-jax-ws). RI's version is JAX-WS RI 2.3.7 git-revision#654ef92. --><definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://ws.gtc.net/" targetNamespace="http://ws.gtc.net/" name="WS">
+   <types>
+      <xs:schema xmlns="http://www.w3.org/2001/XMLSchema" version="1.0" targetNamespace="http://ws.gtc.net/" elementFormDefault="qualified">
+
+         <xs:simpleType name="string">
+            <xs:restriction base="xs:string">
+               <xs:maxLength value="1024"/>
+            </xs:restriction>
+         </xs:simpleType>
+
+         <xs:simpleType name="base64Binary">
+            <xs:restriction base="xs:base64Binary">
+               <xs:maxLength value="67108864"/>
+            </xs:restriction>
+         </xs:simpleType>
+
+         <xs:element name="entries" nillable="true" type="tns:Entries"/>
+
+         <xs:element name="test" nillable="true" type="tns:test"/>
+
+         <xs:element name="testResponse" type="tns:testResponse"/>
+
+         <xs:element name="version" nillable="true" type="tns:version"/>
+
+         <xs:element name="versionResponse" nillable="true" type="tns:versionResponse"/>
+
+         <xs:element name="reload" nillable="true" type="tns:reload"/>
+
+         <xs:element name="reloadResponse" nillable="true" type="tns:reloadResponse"/>
+
+         <xs:complexType name="Entries">
+            <xs:sequence>
+               <xs:element name="item" type="tns:Entry" nillable="true" minOccurs="0" maxOccurs="1024"/>
+            </xs:sequence>
+         </xs:complexType>
+
+         <xs:complexType name="Entry">
+            <xs:sequence>
+               <xs:element name="key" type="tns:string"/>
+               <xs:element name="value" type="tns:string" minOccurs="0"/>
+               <xs:element name="intValue" type="xs:int" minOccurs="0"/>
+               <xs:element name="values" type="tns:ArrayOfString" minOccurs="0"/>
+               <xs:element name="files" type="tns:File" nillable="true" minOccurs="0" maxOccurs="10"/>
+               <xs:element name="table" type="tns:Table" minOccurs="0"/>
+            </xs:sequence>
+         </xs:complexType>
+
+         <xs:complexType name="ArrayOfString">
+            <xs:sequence>
+               <xs:element name="item" type="tns:string" nillable="true" minOccurs="0" maxOccurs="1024"/>
+            </xs:sequence>
+         </xs:complexType>
+
+         <xs:complexType name="ArrayOfStrings">
+            <xs:sequence>
+               <xs:element name="item" type="tns:ArrayOfString" nillable="true" minOccurs="0" maxOccurs="1024"/>
+            </xs:sequence>
+         </xs:complexType>
+
+         <xs:complexType name="File">
+            <xs:sequence>
+               <xs:element name="name" type="tns:string"/>
+               <xs:element name="data" type="tns:base64Binary"/>
+            </xs:sequence>
+         </xs:complexType>
+
+         <xs:complexType name="Table">
+            <xs:sequence>
+               <xs:element name="head" type="tns:ArrayOfString"/>
+               <xs:element name="fields" type="tns:ArrayOfStrings"/>
+            </xs:sequence>
+         </xs:complexType>
+
+         <xs:complexType name="version">
+            <xs:sequence/>
+         </xs:complexType>
+
+         <xs:complexType name="versionResponse">
+            <xs:sequence>
+               <xs:element name="versionResponse" type="tns:string"/>
+            </xs:sequence>
+         </xs:complexType>
+
+         <xs:complexType name="test">
+            <xs:sequence/>
+         </xs:complexType>
+
+         <xs:complexType name="testResponse">
+            <xs:sequence>
+               <xs:element name="testResponse" type="xs:int"/>
+            </xs:sequence>
+         </xs:complexType>
+
+         <xs:complexType name="reload">
+            <xs:sequence/>
+         </xs:complexType>
+
+         <xs:complexType name="reloadResponse">
+            <xs:sequence>
+               <xs:element name="reloadResponse" type="xs:int"/>
+            </xs:sequence>
+         </xs:complexType>
+
+      </xs:schema>
+   </types>
+
+   <message name="exec">
+      <part name="parameters" element="tns:entries"/>
+   </message>
+
+   <message name="execResponse">
+      <part name="execResponse" element="tns:entries"/>
+   </message>
+
+   <message name="version">
+      <part name="version" element="tns:version"/>
+   </message>
+
+   <message name="versionResponse">
+      <part name="versionResponse" element="tns:versionResponse"/>
+   </message>
+
+   <message name="test">
+      <part name="test" element="tns:test"/>
+   </message>
+
+   <message name="testResponse">
+      <part name="testResponse" element="tns:testResponse"/>
+   </message>
+
+   <message name="reload">
+      <part name="reload" element="tns:reload"/>
+   </message>
+
+   <message name="reloadResponse">
+      <part name="reloadResponse" element="tns:reloadResponse"/>
+   </message>
+
+   <portType name="WS">
+      <operation name="exec">
+         <input message="tns:exec"/>
+         <output message="tns:execResponse"/>
+      </operation>
+      <operation name="version">
+         <input message="tns:version"/>
+         <output message="tns:versionResponse"/>
+      </operation>
+      <operation name="test">
+         <input message="tns:test"/>
+         <output message="tns:testResponse"/>
+      </operation>
+      <operation name="reload">
+         <input message="tns:reload"/>
+         <output message="tns:reloadResponse"/>
+      </operation>
+   </portType>
+
+   <binding name="PortBinding" type="tns:WS">
+      <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+
+      <operation name="exec">
+         <soap:operation soapAction=""/>
+         <input>
+            <soap:body use="literal"/>
+         </input>
+         <output>
+            <soap:body use="literal"/>
+         </output>
+      </operation>
+
+      <operation name="version">
+         <soap:operation soapAction=""/>
+         <input>
+            <soap:body use="literal"/>
+         </input>
+         <output>
+            <soap:body use="literal"/>
+         </output>
+      </operation>
+
+      <operation name="test">
+         <soap:operation soapAction=""/>
+         <input>
+            <soap:body use="literal"/>
+         </input>
+         <output>
+            <soap:body use="literal"/>
+         </output>
+      </operation>
+
+      <operation name="reload">
+         <soap:operation soapAction=""/>
+         <input>
+            <soap:body use="literal"/>
+         </input>
+         <output>
+            <soap:body use="literal"/>
+         </output>
+      </operation>
+   </binding>
+
+   <service name="Service">
+      <port name="Port" binding="tns:PortBinding">
+         <soap:address location="https://www.gtc-online.de/ws-cups-fax/WS"/>
+      </port>
+   </service>
+
+</definitions>

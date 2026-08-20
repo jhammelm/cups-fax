@@ -1,0 +1,10 @@
+clang
+%c
+%cpp
+-std=gnu11
+-Wall
+-I/usr/include
+-I/usr/include/pappl
+-I/usr/include/p11-kit-1
+-I/usr/include/libpng16
+-I/usr/include/libusb-1.0

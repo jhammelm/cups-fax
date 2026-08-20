@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope
+    xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+    xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:ns1="http://ws.gtc.net/">
+ <SOAP-ENV:Body>
+   <ns1:entries>
+    <ns1:item>
+     <ns1:key></ns1:key>
+     <ns1:value></ns1:value>
+     <ns1:intValue>0</ns1:intValue>
+     <ns1:values>
+      <ns1:item></ns1:item>
+     </ns1:values>
+     <ns1:files>
+      <ns1:name></ns1:name>
+      <ns1:data></ns1:data>
+     </ns1:files>
+     <ns1:table>
+      <ns1:head>
+       <ns1:item></ns1:item>
+      </ns1:head>
+      <ns1:fields>
+       <ns1:item>
+        <ns1:item></ns1:item>
+       </ns1:item>
+      </ns1:fields>
+     </ns1:table>
+    </ns1:item>
+   </ns1:entries>
+ </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
