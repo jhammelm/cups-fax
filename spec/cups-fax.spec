@@ -20,13 +20,13 @@
 
 Name:           cups-fax
 Version:        3.1.1
-Release:        0
+Release:        1
 Summary:        Virtual PDF/FAX printer for CUPS
 License:        GPL-2.0-or-later
 Group:          Productivity/Publishing/PDF
 URL:            https://www.gtc.de/
-Source0:        http://www.gtc.de/src/cups-fax.tar.gz
-BuildRequires:  gcc7
+Source0:        cups-fax.tar.gz
+BuildRequires:  gcc
 BuildRequires:  make
 BuildRequires:  cups-devel >= 2.2
 BuildRequires:  gsoap-devel >= 2.8
@@ -39,7 +39,7 @@ CUPS-FAX is a PDF/FAX writer backend for CUPS.
 It provides a virtual CUPS-FAX printer which produces PDF files so that
 application programs which have no built-in support to "Send as PDF"
 could print to CUPS-FAX to create a PDF file and send it as FAX.
-For details see %{_docdir}/cups-fax/README.pdf and %{_docdir}/cups-fax/README.fax
+For details see %{_docdir}/cups-fax/README.pdf and %{_docdir}/cups-fax/README.cups-fax
 and http://en.opensuse.org/SDB:Printing_to_PDF
 
 %prep
@@ -96,7 +96,7 @@ exit 0
 
 %files
 %license COPYING
-%doc ChangeLog README.pdf README.fax
+%doc ChangeLog README.pdf README.cups-fax
 %config(noreplace) %attr(640, root, lp) %{_sysconfdir}/cups/cups-fax.conf
 %dir %{_prefix}/lib/cups
 %dir %{_prefix}/lib/cups/backend
@@ -114,6 +114,8 @@ exit 0
 %{_prefix}/share/applications/faxprint.desktop
 
 %changelog
+* Wed Aug 26 2026 Jürgen Hammelmann <j.hammelmann@gtc.net> - 3.1.1-1
+- config.c: now thread-safe.
 * Tue Jun 09 2026 Jürgen Hammelmann <j.hammelmann@gtc.net> - 3.1.1-0
 - pappl-main.c: first part for driver v3.
 * Fri Apr 24 2026 Jürgen Hammelmann <j.hammelmann@gtc.net> - 3.1.0-0
@@ -127,7 +129,7 @@ exit 0
 * Mon Mar 02 2026 Jürgen Hammelmann <j.hammelmann@gtc.net> - 3.0.9-4
 - added missing src/stdsoap2.c
 * Thu Feb 19 2026 Jürgen Hammelmann <j.hammelmann@gtc.net> - 3.0.9-3
-- README.fax: hints for rendering of images.
+- README.cups-fax: hints for rendering of images.
 * Wed Feb 18 2026 Jürgen Hammelmann <j.hammelmann@gtc.net> - 3.0.9-2
 - README.fax: hints, if using AppArmor/SELINUX and Sandboxing of cups.
 * Mon Feb 16 2026 Jürgen Hammelmann <j.hammelmann@gtc.net> - 3.0.9-1

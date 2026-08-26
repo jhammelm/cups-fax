@@ -1,4 +1,22 @@
-#include "config.h"
+#include "logging.h"
+
+struct ConfigData *
+create_config() {
+   struct ConfigData* cfg = malloc(sizeof(configDefaults));
+   if (!cfg) {
+      return NULL;
+   }
+   memcpy(cfg, configDefaults, sizeof(configDefaults));
+   return cfg;
+}
+
+void
+free_config(struct ConfigData* cfg) {
+   if (!cfg) {
+      return;
+   }
+   free(cfg);
+}
 
 /***************************************************************************************
  ** _assign_value(security,key,value)
@@ -42,25 +60,25 @@
  **	UserUMask		umask for user output of known users
  */
 int
-_assign_value(int security, char *key, char *value)
+_assign_value(struct ConfigData* cfg, int security, char *key, char *value)
 {
    int tmp;
    int option;
 
-   for (option = 0; option < END_OF_OPTIONS; option++)
+   for (option = 0; option < NUM_CONFIG_ITEMS; option++)
    {
-      if (strcasecmp(key, configData[option].key_name) == 0)
+      if (strcasecmp(key, configDefaults[option].key_name) == 0)
       {
          break;
       }
    }
 
-   if (option == END_OF_OPTIONS)
+   if (option == NUM_CONFIG_ITEMS)
    {
       return 0;
    }
 
-   if (!(security & configData[option].security) && !(Conf_AllowUnsafeOptions))
+   if (!(security & configDefaults[option].security) && !(Conf_AllowUnsafeOptions(cfg)))
    {
       log_event(CPERROR, "Unsafe option not allowed: %s", key);
       return 0;
@@ -69,168 +87,168 @@ _assign_value(int security, char *key, char *value)
    switch (option)
    {
       case AnonDirName:
-         strncpy(Conf_AnonDirName, value, BUFSIZE);
+         strncpy(Conf_AnonDirName(cfg), value, BUFSIZE);
          break;
 
       case AnonUser:
-         strncpy(Conf_AnonUser, value, BUFSIZE);
+         strncpy(Conf_AnonUser(cfg), value, BUFSIZE);
          break;
 
       case GhostScript:
-         strncpy(Conf_GhostScript, value, BUFSIZE);
+         strncpy(Conf_GhostScript(cfg), value, BUFSIZE);
          break;
 
       case GSCall:
-         strncpy(Conf_GSCall, value, BUFSIZE);
+         strncpy(Conf_GSCall(cfg), value, BUFSIZE);
          break;
 
       case Grp:
-         strncpy(Conf_Grp, value, BUFSIZE);
+         strncpy(Conf_Grp(cfg), value, BUFSIZE);
          break;
 
       case GSTmp:
-         snprintf(Conf_GSTmp, BUFSIZE, "%s%s", "TMPDIR=", value);
+         snprintf(Conf_GSTmp(cfg), BUFSIZE, "%s%s", "TMPDIR=", value);
          break;
 
       case Log:
-         strncpy(Conf_Log, value, BUFSIZE);
+         strncpy(Conf_Log(cfg), value, BUFSIZE);
          break;
 
       case PDFVer:
-         strncpy(Conf_PDFVer, value, BUFSIZE);
+         strncpy(Conf_PDFVer(cfg), value, BUFSIZE);
          break;
 
       case PostProcessing:
-         strncpy(Conf_PostProcessing, value, BUFSIZE);
+         strncpy(Conf_PostProcessing(cfg), value, BUFSIZE);
          break;
 
       case HomeConf:
-         strncpy(Conf_HomeConf, value, BUFSIZE);
+         strncpy(Conf_HomeConf(cfg), value, BUFSIZE);
          break;
 
       case Out:
-         strncpy(Conf_Out, value, BUFSIZE);
+         strncpy(Conf_Out(cfg), value, BUFSIZE);
          break;
 
       case Spool:
-         strncpy(Conf_Spool, value, BUFSIZE);
+         strncpy(Conf_Spool(cfg), value, BUFSIZE);
          break;
 
       case UserPrefix:
-         strncpy(Conf_UserPrefix, value, BUFSIZE);
+         strncpy(Conf_UserPrefix(cfg), value, BUFSIZE);
          break;
 
       case RemovePrefix:
-         strncpy(Conf_RemovePrefix, value, BUFSIZE);
+         strncpy(Conf_RemovePrefix(cfg), value, BUFSIZE);
          break;
 
       case Cut:
          tmp = atoi(value);
-         Conf_Cut = (tmp >= -1) ? tmp : -1;
+         Conf_Cut(cfg) = (tmp >= -1) ? tmp : -1;
          break;
 
       case Truncate:
          tmp = atoi(value);
-         Conf_Truncate = (tmp >= 8) ? tmp : 8;
+         Conf_Truncate(cfg) = (tmp >= 8) ? tmp : 8;
          break;
 
       case DirPrefix:
          tmp = atoi(value);
-         Conf_DirPrefix = (tmp) ? 1 : 0;
+         Conf_DirPrefix(cfg) = (tmp) ? 1 : 0;
          break;
 
       case Label:
          tmp = atoi(value);
-         Conf_Label = (tmp > 2) ? 2 : ((tmp < 0) ? 0 : tmp);
+         Conf_Label(cfg) = (tmp > 2) ? 2 : ((tmp < 0) ? 0 : tmp);
          break;
 
       case LogType:
          tmp = atoi(value);
-         Conf_LogType = (tmp > 7) ? 7 : ((tmp < 0) ? 0 : tmp);
+         Conf_LogType(cfg) = (tmp > 7) ? 7 : ((tmp < 0) ? 0 : tmp);
          break;
 
       case LowerCase:
          tmp = atoi(value);
-         Conf_LowerCase = (tmp) ? 1 : 0;
+         Conf_LowerCase(cfg) = (tmp) ? 1 : 0;
          break;
 
       case TitlePref:
          tmp = atoi(value);
-         Conf_TitlePref = (tmp) ? 1 : 0;
+         Conf_TitlePref(cfg) = (tmp) ? 1 : 0;
          break;
 
       case DecodeHexStrings:
          tmp = atoi(value);
-         Conf_DecodeHexStrings = (tmp) ? 1 : 0;
+         Conf_DecodeHexStrings(cfg) = (tmp) ? 1 : 0;
          break;
 
       case FixNewlines:
          tmp = atoi(value);
-         Conf_FixNewlines = (tmp) ? 1 : 0;
+         Conf_FixNewlines(cfg) = (tmp) ? 1 : 0;
          break;
 
       case AnonUMask:
          tmp = (int) strtol(value, NULL, 8);
-         Conf_AnonUMask = (mode_t) tmp;
+         Conf_AnonUMask(cfg) = (mode_t) tmp;
          break;
 
       case UserUMask:
          tmp = (int) strtol(value, NULL, 8);
-         Conf_UserUMask = (mode_t) tmp;
+         Conf_UserUMask(cfg) = (mode_t) tmp;
          break;
 
       case Resolution:
-         strncpy(Conf_Resolution, value, BUFSIZE);
+         strncpy(Conf_Resolution(cfg), value, BUFSIZE);
          break;
 
       case Endpoint:
-         strncpy(Conf_Endpoint, value, BUFSIZE);
+         strncpy(Conf_Endpoint(cfg), value, BUFSIZE);
          break;
 
       case AuthUser:
-         strncpy(Conf_AuthUser, value, BUFSIZE);
+         strncpy(Conf_AuthUser(cfg), value, BUFSIZE);
          break;
 
       case AuthPwd:
-         strncpy(Conf_AuthPwd, value, BUFSIZE);
+         strncpy(Conf_AuthPwd(cfg), value, BUFSIZE);
          break;
 
       case FaxNumber:
-         strncpy(Conf_FaxNumber, value, BUFSIZE);
+         strncpy(Conf_FaxNumber(cfg), value, BUFSIZE);
          break;
 
       case FaxHeader:
-         strncpy(Conf_FaxHeader, value, BUFSIZE);
+         strncpy(Conf_FaxHeader(cfg), value, BUFSIZE);
          break;
 
       case SendingFaxID:
-         strncpy(Conf_SendingFaxID, value, BUFSIZE);
+         strncpy(Conf_SendingFaxID(cfg), value, BUFSIZE);
          break;
 
       case EMailAddress:
-         strncpy(Conf_EMailAddress, value, BUFSIZE);
+         strncpy(Conf_EMailAddress(cfg), value, BUFSIZE);
          break;
 
       case FaxResolution:
-         strncpy(Conf_FaxResolution, value, BUFSIZE);
+         strncpy(Conf_FaxResolution(cfg), value, BUFSIZE);
          break;
 
       case FaxRendering:
-         strncpy(Conf_FaxRendering, value, BUFSIZE);
+         strncpy(Conf_FaxRendering(cfg), value, BUFSIZE);
          break;
 
       case FaxDelay:
          tmp = (int) strtol(value, NULL, 8);
-         Conf_FaxDelay = (int) tmp;
+         Conf_FaxDelay(cfg) = (int) tmp;
          break;
 
       case FaxMaxRetry:
          tmp = (int) strtol(value, NULL, 8);
-         Conf_FaxMaxRetry = (int) tmp;
+         Conf_FaxMaxRetry(cfg) = (int) tmp;
          break;
 
       case Preview:
-         strncpy(Conf_Preview, value, BUFSIZE);
+         strncpy(Conf_Preview(cfg), value, BUFSIZE);
          break;
 
       default:
@@ -251,7 +269,7 @@ _assign_value(int security, char *key, char *value)
  ** Returns:	int, is 0, if configuration could be read
  */
 int
-read_config_file(char *filename)
+read_config_file(struct ConfigData* cfg, char *filename)
 {
    FILE *fp = NULL;
    struct stat fstatus;
@@ -277,7 +295,7 @@ read_config_file(char *filename)
       {
          if (!strlen(key) || !strncmp(key, "#", 1))
             continue;
-         _assign_value(SEC_CONF, key, value);
+         _assign_value(cfg, SEC_CONF, key, value);
          ++i;
       }
    }
@@ -306,7 +324,7 @@ read_config_file(char *filename)
  **	using the (as yet to be documented) "Job Ticket API" instead.
  */
 void
-read_config_ppd()
+read_config_ppd(struct ConfigData* cfg)
 {
    ppd_option_t *option;
    ppd_file_t *ppd_file;
@@ -332,12 +350,10 @@ read_config_ppd()
    option = ppdFirstOption(ppd_file);
    while (option != NULL)
    {
-      _assign_value(SEC_PPD, option->keyword, option->defchoice);
+      _assign_value(cfg, SEC_PPD, option->keyword, option->defchoice);
       option = ppdNextOption(ppd_file);
    }
    ppdClose(ppd_file);
-
-   return;
 }
 
 /***************************************************************************************
@@ -353,14 +369,12 @@ read_config_ppd()
  ** NB: uses function from libcups to access options string
  */
 void
-read_config_options(const char *lpoptions)
+read_config_options(struct ConfigData* cfg, const char *lpoptions)
 {
    int i;
-   int num_options;
    cups_option_t *options;
    cups_option_t *option;
-
-   num_options = cupsParseOptions(lpoptions, 0, &options);
+   int num_options = cupsParseOptions(lpoptions, 0, &options);
 
    for (i = 0, option = options; i < num_options; i++, option++)
    {
@@ -374,9 +388,8 @@ read_config_options(const char *lpoptions)
             option->value[j] = ' ';
          }
       }
-      _assign_value(SEC_LPOPT, option->name, option->value);
+      _assign_value(cfg, SEC_LPOPT, option->name, option->value);
    }
-   return;
 }
 
 /***************************************************************************************
@@ -412,54 +425,54 @@ read_config_options(const char *lpoptions)
  **	FixNewlines		try to fix various unusal line delimiters (e.g. form feeds)
  **	AnonUMask		umask for anonymous output
  **	UserUMask		umask for user output of known users
- **   Preview        switch to send FAX template via email
+ **     Preview                 switch to send FAX template via email
  */
 void
-dump_configuration(char *user)
+dump_configuration(struct ConfigData* cfg, char *user)
 {
-   if (Conf_LogType & CPDEBUG)
+   if (Conf_LogType(cfg) & CPDEBUG)
    {
       log_event(CPDEBUG, "*** Final Configuration for user %s ***", user);
-      log_event(CPDEBUG, "AnonDirName        = \"%s\"", Conf_AnonDirName);
-      log_event(CPDEBUG, "AnonUser           = \"%s\"", Conf_AnonUser);
-      log_event(CPDEBUG, "GhostScript        = \"%s\"", Conf_GhostScript);
-      log_event(CPDEBUG, "GSCall             = \"%s\"", Conf_GSCall);
-      log_event(CPDEBUG, "Grp                = \"%s\"", Conf_Grp);
-      log_event(CPDEBUG, "GSTmp              = \"%s\"", Conf_GSTmp);
-      log_event(CPDEBUG, "Log                = \"%s\"", Conf_Log);
-      log_event(CPDEBUG, "PDFVer             = \"%s\"", Conf_PDFVer);
-      log_event(CPDEBUG, "PostProcessing     = \"%s\"", Conf_PostProcessing);
-      log_event(CPDEBUG, "HomeConf           = \"%s\"", Conf_HomeConf);
-      log_event(CPDEBUG, "Out                = \"%s\"", Conf_Out);
-      log_event(CPDEBUG, "Spool              = \"%s\"", Conf_Spool);
-      log_event(CPDEBUG, "UserPrefix         = \"%s\"", Conf_UserPrefix);
-      log_event(CPDEBUG, "RemovePrefix       = \"%s\"", Conf_RemovePrefix);
-      log_event(CPDEBUG, "OutExtension       = \"%s\"", Conf_OutExtension);
-      log_event(CPDEBUG, "Cut                = %d", Conf_Cut);
-      log_event(CPDEBUG, "Truncate           = %d", Conf_Truncate);
-      log_event(CPDEBUG, "DirPrefix          = %d", Conf_DirPrefix);
-      log_event(CPDEBUG, "Label              = %d", Conf_Label);
-      log_event(CPDEBUG, "LogType            = %d", Conf_LogType);
-      log_event(CPDEBUG, "LowerCase          = %d", Conf_LowerCase);
-      log_event(CPDEBUG, "TitlePref          = %d", Conf_TitlePref);
-      log_event(CPDEBUG, "DecodeHexStrings   = %d", Conf_DecodeHexStrings);
-      log_event(CPDEBUG, "FixNewlines        = %d", Conf_FixNewlines);
-      log_event(CPDEBUG, "AllowUnsafeOptions = %d", Conf_AllowUnsafeOptions);
-      log_event(CPDEBUG, "AnonUMask          = %04o", Conf_AnonUMask);
-      log_event(CPDEBUG, "UserUMask          = %04o", Conf_UserUMask);
-      log_event(CPDEBUG, "Resolution         = \"%s\"", Conf_Resolution);
-      log_event(CPDEBUG, "Endpoint           = \"%s\"", Conf_Endpoint);
-      log_event(CPDEBUG, "AuthUser           = \"%s\"", Conf_AuthUser);
-      log_event(CPDEBUG, "AuthPwd            = \"%s\"", Conf_AuthPwd);
-      log_event(CPDEBUG, "FaxNumber          = \"%s\"", Conf_FaxNumber);
-      log_event(CPDEBUG, "FaxHeader          = \"%s\"", Conf_FaxHeader);
-      log_event(CPDEBUG, "SendingFaxID       = \"%s\"", Conf_SendingFaxID);
-      log_event(CPDEBUG, "EMailAddress       = \"%s\"", Conf_EMailAddress);
-      log_event(CPDEBUG, "FaxResolution      = \"%s\"", Conf_FaxResolution);
-      log_event(CPDEBUG, "FaxRendering       = \"%s\"", Conf_FaxRendering);
-      log_event(CPDEBUG, "FaxDelay           = %d", Conf_FaxDelay);
-      log_event(CPDEBUG, "FaxMaxRetry        = %d", Conf_FaxMaxRetry);
-      log_event(CPDEBUG, "Preview            = \"%s\"", Conf_Preview);
+      log_event(CPDEBUG, "AnonDirName        = \"%s\"", Conf_AnonDirName(cfg));
+      log_event(CPDEBUG, "AnonUser           = \"%s\"", Conf_AnonUser(cfg));
+      log_event(CPDEBUG, "GhostScript        = \"%s\"", Conf_GhostScript(cfg));
+      log_event(CPDEBUG, "GSCall             = \"%s\"", Conf_GSCall(cfg));
+      log_event(CPDEBUG, "Grp                = \"%s\"", Conf_Grp(cfg));
+      log_event(CPDEBUG, "GSTmp              = \"%s\"", Conf_GSTmp(cfg));
+      log_event(CPDEBUG, "Log                = \"%s\"", Conf_Log(cfg));
+      log_event(CPDEBUG, "PDFVer             = \"%s\"", Conf_PDFVer(cfg));
+      log_event(CPDEBUG, "PostProcessing     = \"%s\"", Conf_PostProcessing(cfg));
+      log_event(CPDEBUG, "HomeConf           = \"%s\"", Conf_HomeConf(cfg));
+      log_event(CPDEBUG, "Out                = \"%s\"", Conf_Out(cfg));
+      log_event(CPDEBUG, "Spool              = \"%s\"", Conf_Spool(cfg));
+      log_event(CPDEBUG, "UserPrefix         = \"%s\"", Conf_UserPrefix(cfg));
+      log_event(CPDEBUG, "RemovePrefix       = \"%s\"", Conf_RemovePrefix(cfg));
+      log_event(CPDEBUG, "OutExtension       = \"%s\"", Conf_OutExtension(cfg));
+      log_event(CPDEBUG, "Cut                = %d", Conf_Cut(cfg));
+      log_event(CPDEBUG, "Truncate           = %d", Conf_Truncate(cfg));
+      log_event(CPDEBUG, "DirPrefix          = %d", Conf_DirPrefix(cfg));
+      log_event(CPDEBUG, "Label              = %d", Conf_Label(cfg));
+      log_event(CPDEBUG, "LogType            = %d", Conf_LogType(cfg));
+      log_event(CPDEBUG, "LowerCase          = %d", Conf_LowerCase(cfg));
+      log_event(CPDEBUG, "TitlePref          = %d", Conf_TitlePref(cfg));
+      log_event(CPDEBUG, "DecodeHexStrings   = %d", Conf_DecodeHexStrings(cfg));
+      log_event(CPDEBUG, "FixNewlines        = %d", Conf_FixNewlines(cfg));
+      log_event(CPDEBUG, "AllowUnsafeOptions = %d", Conf_AllowUnsafeOptions(cfg));
+      log_event(CPDEBUG, "AnonUMask          = %04o", Conf_AnonUMask(cfg));
+      log_event(CPDEBUG, "UserUMask          = %04o", Conf_UserUMask(cfg));
+      log_event(CPDEBUG, "Resolution         = \"%s\"", Conf_Resolution(cfg));
+      log_event(CPDEBUG, "Endpoint           = \"%s\"", Conf_Endpoint(cfg));
+      log_event(CPDEBUG, "AuthUser           = \"%s\"", Conf_AuthUser(cfg));
+      log_event(CPDEBUG, "AuthPwd            = \"%s\"", Conf_AuthPwd(cfg));
+      log_event(CPDEBUG, "FaxNumber          = \"%s\"", Conf_FaxNumber(cfg));
+      log_event(CPDEBUG, "FaxHeader          = \"%s\"", Conf_FaxHeader(cfg));
+      log_event(CPDEBUG, "SendingFaxID       = \"%s\"", Conf_SendingFaxID(cfg));
+      log_event(CPDEBUG, "EMailAddress       = \"%s\"", Conf_EMailAddress(cfg));
+      log_event(CPDEBUG, "FaxResolution      = \"%s\"", Conf_FaxResolution(cfg));
+      log_event(CPDEBUG, "FaxRendering       = \"%s\"", Conf_FaxRendering(cfg));
+      log_event(CPDEBUG, "FaxDelay           = %d", Conf_FaxDelay(cfg));
+      log_event(CPDEBUG, "FaxMaxRetry        = %d", Conf_FaxMaxRetry(cfg));
+      log_event(CPDEBUG, "Preview            = \"%s\"", Conf_Preview(cfg));
       log_event(CPDEBUG, "*** End of Configuration ***");
    }
    return;
@@ -481,13 +494,13 @@ dump_configuration(char *user)
  **    Out		CUPS-FAX output directory
  */
 char *
-preparedirname(char *src, struct passwd *passwd, char *uname)
+preparedirname(struct ConfigData* cfg, char *src, struct passwd *passwd, char *uname)
 {
    int size;
    char bufin[BUFSIZE], bufout[BUFSIZE], *needle, *cptr;
 
-   needle = strstr(uname, Conf_RemovePrefix);
-   if ((int) strlen(uname)>(size = strlen(Conf_RemovePrefix)))
+   needle = strstr(uname, Conf_RemovePrefix(cfg));
+   if ((int) strlen(uname)>(size = strlen(Conf_RemovePrefix(cfg))))
       uname = uname + size;
 
    strncpy(bufin, src, BUFSIZE);
@@ -509,7 +522,7 @@ preparedirname(char *src, struct passwd *passwd, char *uname)
          break;
       needle[0] = '\0';
       cptr = needle + 7;
-      if (!Conf_DirPrefix)
+      if (!Conf_DirPrefix(cfg))
          snprintf(bufout, BUFSIZE, "%s%s%s", bufin, uname, cptr);
       else
          snprintf(bufout, BUFSIZE, "%s%s%s", bufin, passwd->pw_name, cptr);
@@ -543,15 +556,17 @@ preparedirname(char *src, struct passwd *passwd, char *uname)
  **
  ** NB: uses function from libcups to retrieve backend device URI
  */
-int
+struct ConfigData*
 init(char *argv[])
 {
+   struct ConfigData* cfg = create_config();
+
    cp_string filename;
    const char *uri = cupsBackendDeviceURI(argv);
 #ifdef CPLOG
-   if (enable_log())
+   if (enable_log(cfg))
    {
-      return 1;
+      return NULL;
    }
 #endif
    if ((uri != NULL) && (strncmp(uri, "cups-fax:/", 11) == 0) && strlen(uri) > 11)
@@ -564,22 +579,22 @@ init(char *argv[])
       sprintf(filename, "%s/cups-fax.conf", CP_CONFIG_PATH);
    }
 
-   read_config_file(filename);
+   read_config_file(cfg, filename);
 
-   read_config_ppd();
+   read_config_ppd(cfg);
 
-   return 0;
+   return cfg;
 }
 
 int
-init2(char *argv[], struct passwd *passwd)
+init2(struct ConfigData* cfg, char *argv[], struct passwd *passwd)
 {
    struct stat fstatus;
    struct group *group;
    cp_string homedir;
    int grpstat;
 
-   char *p = strncpy(homedir, preparedirname(Conf_HomeConf, passwd, argv[2]), BUFSIZE);
+   char *p = strncpy(homedir, preparedirname(cfg, Conf_HomeConf(cfg), passwd, argv[2]), BUFSIZE);
    size_t l = p - homedir;
    while ((l = strlen(homedir)) && ((homedir[l - 1] == '\n') ||
                                     (homedir[l - 1] == '\r')))
@@ -588,53 +603,53 @@ init2(char *argv[], struct passwd *passwd)
    }
    if (l)
    {
-      read_config_file(homedir);
+      read_config_file(cfg, homedir);
    }
 
-   read_config_options(argv[5]);
+   read_config_options(cfg, argv[5]);
 
    (void) umask(0077);
 
-   group = getgrnam(Conf_Grp);
+   group = getgrnam(Conf_Grp(cfg));
    grpstat = setgid(group->gr_gid);
 #ifdef CPLOG
-   if (enable_log())
+   if (enable_log(cfg))
    {
       return 1;
    }
 #endif
-   dump_configuration(argv[2]);
+   dump_configuration(cfg, argv[2]);
 
    if (!group)
    {
-      log_event(CPERROR, "Grp not found: %s", Conf_Grp);
+      log_event(CPERROR, "Grp not found: %s", Conf_Grp(cfg));
       return 1;
    }
    else if (grpstat)
    {
-      log_event(CPERROR, "failed to set new gid: %s", Conf_Grp);
+      log_event(CPERROR, "failed to set new gid: %s", Conf_Grp(cfg));
       return 1;
    }
    else
-      log_event(CPDEBUG, "set new gid: %s", Conf_Grp);
+      log_event(CPDEBUG, "set new gid: %s", Conf_Grp(cfg));
 
    (void) umask(0022);
 
-   if (stat(Conf_Spool, &fstatus) || !S_ISDIR(fstatus.st_mode))
+   if (stat(Conf_Spool(cfg), &fstatus) || !S_ISDIR(fstatus.st_mode))
    {
-      if (create_dir(Conf_Spool, 0))
+      if (create_dir(Conf_Spool(cfg), 0))
       {
-         log_event(CPERROR, "failed to create spool directory: %s", Conf_Spool);
+         log_event(CPERROR, "failed to create spool directory: %s", Conf_Spool(cfg));
          return 1;
       }
-      if (chmod(Conf_Spool, 0751))
+      if (chmod(Conf_Spool(cfg), 0751))
       {
-         log_event(CPERROR, "failed to set mode on spool directory: %s", Conf_Spool);
+         log_event(CPERROR, "failed to set mode on spool directory: %s", Conf_Spool(cfg));
          return 1;
       }
-      if (chown(Conf_Spool, -1, group->gr_gid))
-         log_event(CPERROR, "failed to set group id %s on spool directory: %s (non fatal)", Conf_Grp, Conf_Spool);
-      log_event(CPSTATUS, "spool directory created: %s", Conf_Spool);
+      if (chown(Conf_Spool(cfg), -1, group->gr_gid))
+         log_event(CPERROR, "failed to set group id %s on spool directory: %s (non fatal)", Conf_Grp(cfg), Conf_Spool(cfg));
+      log_event(CPSTATUS, "spool directory created: %s", Conf_Spool(cfg));
    }
 
    (void) umask(0077);

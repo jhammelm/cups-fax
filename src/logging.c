@@ -1,26 +1,7 @@
 #include "logging.h"
 
 FILE* logfp = NULL;
-short logType = 7;
-char* logDir = "/var/log/cups";
-
-int
-confLogType() {
-#ifdef CPV3
-   return logType;
-#else
-   return Conf_LogType;
-#endif
-}
-
-char*
-confLog() {
-#ifdef CPV3
-   return logDir;
-#else
-   return Conf_Log;
-#endif
-}
+int logType = 0;
 
 /***************************************************************************************
  ** log_event(type,message,...)
@@ -47,7 +28,7 @@ log_event(short type, const char *message, ...)
    cp_string logbuffer;
    va_list ap;
 
-   if (logfp != NULL && (type & confLogType()))
+   if (logfp != NULL && (type & logType))
    {
       (void) time(&secs);
       timestring = ctime(&secs);
@@ -65,7 +46,7 @@ log_event(short type, const char *message, ...)
       va_end(ap);
 
       fprintf(logfp, "%s  [%s] %s\n", timestring, ctype, logbuffer);
-      if ((confLogType() & CPDEBUG) && (type == CPERROR) && error)
+      if ((logType & CPDEBUG) && (type == CPERROR) && error)
       {
          fprintf(logfp, "%s  [DEBUG] ERRNO: %d (%s)\n", timestring, error, strerror(error));
       }
@@ -76,34 +57,36 @@ log_event(short type, const char *message, ...)
 }
 
 int
-enable_log()
+enable_log(struct ConfigData* cfg)
 {
    cp_string logFilename;
    struct stat fstatus;
-   if (strlen(confLog()))
+   if (strlen(Conf_Log(cfg)))
    {
       close_log();
 
-      if (stat(confLog(), &fstatus) || !S_ISDIR(fstatus.st_mode))
+      if (stat(Conf_Log(cfg), &fstatus) || !S_ISDIR(fstatus.st_mode))
       {
-         if (create_dir(confLog(), 1))
+         if (create_dir(Conf_Log(cfg), 1))
          {
-            fprintf(stderr, "creating directory %s failed", confLog());
+            fprintf(stderr, "creating directory %s failed", Conf_Log(cfg));
             return 1;
          }
-         if (chmod(confLog(), 0755))
+         if (chmod(Conf_Log(cfg), 0755))
          {
-            fprintf(stderr, "chmod %d for directory %s failed", 0755, confLog());
+            fprintf(stderr, "chmod %d for directory %s failed", 0755, Conf_Log(cfg));
             return 1;
          }
       }
 
-      snprintf(logFilename, BUFSIZE, "%s/%s%s%s", confLog(), "cups-fax-", getenv("PRINTER"), "_log");
+      snprintf(logFilename, BUFSIZE, "%s/%s%s%s", Conf_Log(cfg), "cups-fax-", getenv("PRINTER"), "_log");
       if ((logfp = fopen(logFilename, "a")) == NULL)
       {
          fprintf(stderr, "the following target file %s can not be appended", logFilename);
          return 1;
       }
+
+      logType = Conf_LogType(cfg);
    }
    return 0;
 }

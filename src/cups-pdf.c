@@ -42,6 +42,7 @@
 #include "cups-pdf.h"
 #include "read-file.h"
 #include "stub.h"
+#include "logging.h"
 
 
 /***************************************************************************************
@@ -96,21 +97,21 @@ announce_printers()
  **			1 returned on all error conditions
  */
 int
-prepareuser(struct passwd *passwd, char *dirname)
+prepareuser(struct ConfigData* cfg, struct passwd *passwd, char *dirname)
 {
    struct stat fstatus;
 
    (void) umask(0000);
    if (stat(dirname, &fstatus) || !S_ISDIR(fstatus.st_mode))
    {
-      if (!strcmp(passwd->pw_name, Conf_AnonUser))
+      if (!strcmp(passwd->pw_name, Conf_AnonUser(cfg)))
       {
          if (create_dir(dirname, 0))
          {
             log_event(CPERROR, "failed to create anonymous output directory: %s", dirname);
             return 1;
          }
-         if (chmod(dirname, (mode_t) (0777 & ~Conf_AnonUMask)))
+         if (chmod(dirname, (mode_t) (0777 & ~Conf_AnonUMask(cfg))))
          {
             log_event(CPERROR, "failed to set mode on anonymous output directory: %s", dirname);
             return 1;
@@ -124,7 +125,7 @@ prepareuser(struct passwd *passwd, char *dirname)
             log_event(CPERROR, "failed to create user output directory: %s", dirname);
             return 1;
          }
-         if (chmod(dirname, (mode_t) (0777 & ~Conf_UserUMask)))
+         if (chmod(dirname, (mode_t) (0777 & ~Conf_UserUMask(cfg))))
          {
             log_event(CPERROR, "failed to set mode on user output directory: %s", dirname);
             return 1;
@@ -332,14 +333,14 @@ replace_string(char *string)
  **   Truncate		truncate long filenames to a maximum of specified characters
  */
 int
-preparetitle(char *title)
+preparetitle(struct ConfigData* cfg, char *title)
 {
    char *cut;
    int i;
 
    if (title != NULL)
    {
-      if (Conf_DecodeHexStrings)
+      if (Conf_DecodeHexStrings(cfg))
       {
          log_event(CPSTATUS, "***Experimental Option: DecodeHexStrings");
          log_event(CPDEBUG, "checking for hex strings: %s", title);
@@ -389,14 +390,14 @@ preparetitle(char *title)
       memmove(title, cut + 1, strlen(cut + 1) + 1);
    }
    cut = strrchr(title, '.');
-   if ((cut != NULL) && ((int) strlen(cut) <= Conf_Cut + 1) && (cut != title))
+   if ((cut != NULL) && ((int) strlen(cut) <= Conf_Cut(cfg) + 1) && (cut != title))
    {
       log_event(CPDEBUG, "removing file name extension: %s", cut);
       cut[0] = '\0';
    }
-   if (strlen(title) > Conf_Truncate)
+   if (strlen(title) > Conf_Truncate(cfg))
    {
-      title[Conf_Truncate] = '\0';
+      title[Conf_Truncate(cfg)] = '\0';
       log_event(CPDEBUG, "truncating title: %s", title);
    }
    return strcmp(title, "");
@@ -421,13 +422,13 @@ preparetitle(char *title)
  **   FixNewlines	flag to enable alternate line endings (LF, FF, CR) (experimental)
  */
 char *
-fgets2(char *fbuffer, int fbufsize, FILE *ffpsrc)
+fgets2(struct ConfigData* cfg, char *fbuffer, int fbufsize, FILE *ffpsrc)
 {
    /* like fgets() but linedelimiters are 0x0A, 0x0C, 0x0D (LF, FF, CR). */
    int c, pos;
    char *result;
 
-   if (!Conf_FixNewlines)
+   if (!Conf_FixNewlines(cfg))
       return fgets(fbuffer, fbufsize, ffpsrc);
 
    result = NULL;
@@ -482,7 +483,8 @@ fgets2(char *fbuffer, int fbufsize, FILE *ffpsrc)
  **			2: label all documents with a tailing "-job_#"
  */
 int
-preparespoolfile(FILE *fpsrc, char *spoolfile, char *title, char *cmdtitle,
+preparespoolfile(struct ConfigData* cfg, FILE *fpsrc, char *spoolfile,
+                 char *title, char *cmdtitle,
                  int job, struct passwd *passwd)
 {
    cp_string buffer;
@@ -510,11 +512,11 @@ preparespoolfile(FILE *fpsrc, char *spoolfile, char *title, char *cmdtitle,
    }
    log_event(CPDEBUG, "owner set for spoolfile: %s", spoolfile);
    rec_depth = 0;
-   if (Conf_FixNewlines)
+   if (Conf_FixNewlines(cfg))
       log_event(CPSTATUS, "***Experimental Option: FixNewlines");
    else
       log_event(CPDEBUG, "using traditional fgets");
-   while (fgets2(buffer, BUFSIZE, fpsrc) != NULL)
+   while (fgets2(cfg, buffer, BUFSIZE, fpsrc) != NULL)
    {
       if (!strncmp(buffer, "%!", 2) && strncmp(buffer, "%!PS-AdobeFont", 14))
       {
@@ -524,7 +526,7 @@ preparespoolfile(FILE *fpsrc, char *spoolfile, char *title, char *cmdtitle,
    }
    log_event(CPDEBUG, "now extracting postscript code");
    (void) fputs(buffer, fpdest);
-   while (fgets2(buffer, BUFSIZE, fpsrc) != NULL)
+   while (fgets2(cfg, buffer, BUFSIZE, fpsrc) != NULL)
    {
       (void) fputs(buffer, fpdest);
       if (!is_title && !rec_depth)
@@ -563,13 +565,13 @@ preparespoolfile(FILE *fpsrc, char *spoolfile, char *title, char *cmdtitle,
    if (title == NULL || !strcmp(title, "((stdin))"))
       title[0] = '\0';
 
-   if (Conf_TitlePref)
+   if (Conf_TitlePref(cfg))
    {
       log_event(CPDEBUG, "trying to use commandline title: %s", buffer);
-      if (!preparetitle(buffer))
+      if (!preparetitle(cfg, buffer))
       {
          log_event(CPDEBUG, "empty commandline title, using PS title: %s", title);
-         if (!preparetitle(title))
+         if (!preparetitle(cfg, title))
             log_event(CPDEBUG, "empty PS title");
       }
       else
@@ -578,10 +580,10 @@ preparespoolfile(FILE *fpsrc, char *spoolfile, char *title, char *cmdtitle,
    else
    {
       log_event(CPDEBUG, "trying to use PS title: %s", title);
-      if (!preparetitle(title))
+      if (!preparetitle(cfg, title))
       {
          log_event(CPDEBUG, "empty PS title, using commandline title: %s", buffer);
-         if (!preparetitle(buffer))
+         if (!preparetitle(cfg, buffer))
             log_event(CPDEBUG, "empty commandline title");
          else
             snprintf(title, BUFSIZE, "%s", buffer);
@@ -590,7 +592,7 @@ preparespoolfile(FILE *fpsrc, char *spoolfile, char *title, char *cmdtitle,
 
    if (!strcmp(title, ""))
    {
-      if (Conf_Label == 2)
+      if (Conf_Label(cfg) == 2)
          snprintf(title, BUFSIZE, "untitled_document-job_%i", job);
       else
          snprintf(title, BUFSIZE, "job_%i-untitled_document", job);
@@ -598,10 +600,10 @@ preparespoolfile(FILE *fpsrc, char *spoolfile, char *title, char *cmdtitle,
    }
    else
    {
-      if (Conf_Label)
+      if (Conf_Label(cfg))
       {
          strcpy(buffer, title);
-         if (Conf_Label == 2)
+         if (Conf_Label(cfg) == 2)
             snprintf(title, BUFSIZE, "%s-job_%i", buffer, job);
          else
             snprintf(title, BUFSIZE, "job_%i-%s", job, buffer);
@@ -712,44 +714,45 @@ main(int argc, char *argv[])
       return 0;
    }
 
-   if (init(argv))
+   struct ConfigData* cfg = init(argv);
+   if (!cfg)
       return 5;
 
    log_event(CPDEBUG, "initialization (part 1) done");
 
-   size = strlen(Conf_UserPrefix) + strlen(argv[2]) + 1;
+   size = strlen(Conf_UserPrefix(cfg)) + strlen(argv[2]) + 1;
    user = calloc(size, sizeof (char));
    if (user == NULL)
    {
       (void) fputs("CUPS-FAX: failed to allocate memory\n", stderr);
       return 5;
    }
-   snprintf(user, size, "%s%s", Conf_UserPrefix, argv[2]);
+   snprintf(user, size, "%s%s", Conf_UserPrefix(cfg), argv[2]);
    passwd = getpwnam(user);
-   if (passwd == NULL && Conf_LowerCase)
+   if (passwd == NULL && Conf_LowerCase(cfg))
    {
       log_event(CPDEBUG, "unknown user: %s", user);
       for (size = 0; size < (int) strlen(argv[2]); size++)
          argv[2][size] = tolower(argv[2][size]);
       log_event(CPDEBUG, "trying lower case user name: %s", argv[2]);
-      size = strlen(Conf_UserPrefix) + strlen(argv[2]) + 1;
-      snprintf(user, size, "%s%s", Conf_UserPrefix, argv[2]);
+      size = strlen(Conf_UserPrefix(cfg)) + strlen(argv[2]) + 1;
+      snprintf(user, size, "%s%s", Conf_UserPrefix(cfg), argv[2]);
       passwd = getpwnam(user);
    }
    if (passwd == NULL)
    {
-      if (strlen(Conf_AnonUser))
+      if (strlen(Conf_AnonUser(cfg)))
       {
-         passwd = getpwnam(Conf_AnonUser);
+         passwd = getpwnam(Conf_AnonUser(cfg));
          if (passwd == NULL)
          {
-            log_event(CPERROR, "username for anonymous access unknown: %s", Conf_AnonUser);
+            log_event(CPERROR, "username for anonymous access unknown: %s", Conf_AnonUser(cfg));
             free(user);
             close_log();
             return 5;
          }
          log_event(CPDEBUG, "unknown user: %s", user);
-         size = strlen(Conf_AnonDirName) + 4;
+         size = strlen(Conf_AnonDirName(cfg)) + 4;
          dirname = calloc(size, sizeof (char));
          if (dirname == NULL)
          {
@@ -758,7 +761,7 @@ main(int argc, char *argv[])
             close_log();
             return 5;
          }
-         snprintf(dirname, size, "%s", Conf_AnonDirName);
+         snprintf(dirname, size, "%s", Conf_AnonDirName(cfg));
          while (strlen(dirname) && ((dirname[strlen(dirname) - 1] == '\n') ||
                                     (dirname[strlen(dirname) - 1] == '\r')))
             dirname[strlen(dirname) - 1] = '\0';
@@ -771,13 +774,13 @@ main(int argc, char *argv[])
          close_log();
          return 0;
       }
-      mode = (mode_t) (0666 & ~Conf_AnonUMask);
+      mode = (mode_t) (0666 & ~Conf_AnonUMask(cfg));
    }
    else
    {
       log_event(CPDEBUG, "user identified: %s", passwd->pw_name);
 
-      if ((dirname = preparedirname(Conf_Out, passwd, argv[2])) == NULL)
+      if ((dirname = preparedirname(cfg, Conf_Out(cfg), passwd, argv[2])) == NULL)
       {
          (void) fputs("CUPS-FAX: failed to allocate memory\n", stderr);
          free(user);
@@ -790,7 +793,7 @@ main(int argc, char *argv[])
          dirname[strlen(dirname) - 1] = '\0';
       }
       log_event(CPDEBUG, "output directory name generated: %s", dirname);
-      mode = (mode_t) (0666 & ~Conf_UserUMask);
+      mode = (mode_t) (0666 & ~Conf_UserUMask(cfg));
    }
    ngroups = 32;
    groups = calloc(ngroups, sizeof (gid_t));
@@ -817,7 +820,7 @@ main(int argc, char *argv[])
       return 5;
    }
    free(user);
-   if (prepareuser(passwd, dirname))
+   if (prepareuser(cfg, passwd, dirname))
    {
       free(groups);
       free(dirname);
@@ -826,7 +829,7 @@ main(int argc, char *argv[])
    }
    log_event(CPDEBUG, "user information prepared");
 
-   if (init2(argv, passwd))
+   if (init2(cfg, argv, passwd))
    {
       free(groups);
       free(dirname);
@@ -836,7 +839,7 @@ main(int argc, char *argv[])
 
    log_event(CPDEBUG, "initialization finished: %s", CPVERSION);
 
-   size = strlen(Conf_Spool) + 24;
+   size = strlen(Conf_Spool(cfg)) + 24;
    spoolfile = calloc(size, sizeof (char));
    if (spoolfile == NULL)
    {
@@ -846,12 +849,12 @@ main(int argc, char *argv[])
       close_log();
       return 5;
    }
-   snprintf(spoolfile, size, "%s/cups2fax-%i", Conf_Spool, (int) getpid());
+   snprintf(spoolfile, size, "%s/cups2fax-%i", Conf_Spool(cfg), (int) getpid());
    log_event(CPDEBUG, "spoolfile name created: %s", spoolfile);
 
    if (argc == 6)
    {
-      if (preparespoolfile(stdin, spoolfile, title, argv[3], atoi(argv[1]), passwd))
+      if (preparespoolfile(cfg, stdin, spoolfile, title, argv[3], atoi(argv[1]), passwd))
       {
          free(groups);
          free(dirname);
@@ -863,7 +866,7 @@ main(int argc, char *argv[])
    }
    else
    {
-      if (preparespoolfile(fopen(argv[6], "r"), spoolfile, title, argv[3], atoi(argv[1]), passwd))
+      if (preparespoolfile(cfg, fopen(argv[6], "r"), spoolfile, title, argv[3], atoi(argv[1]), passwd))
       {
          free(groups);
          free(dirname);
@@ -874,7 +877,7 @@ main(int argc, char *argv[])
       log_event(CPDEBUG, "input data read from file: %s", argv[6]);
    }
 
-   size = strlen(dirname) + strlen(title) + strlen(Conf_OutExtension) + 3;
+   size = strlen(dirname) + strlen(title) + strlen(Conf_OutExtension(cfg)) + 3;
    outfile = calloc(size, sizeof (char));
    if (outfile == NULL)
    {
@@ -889,13 +892,13 @@ main(int argc, char *argv[])
       close_log();
       return 5;
    }
-   if (strlen(Conf_OutExtension))
-      snprintf(outfile, size, "%s/%s.%s", dirname, title, Conf_OutExtension);
+   if (strlen(Conf_OutExtension(cfg)))
+      snprintf(outfile, size, "%s/%s.%s", dirname, title, Conf_OutExtension(cfg));
    else
       snprintf(outfile, size, "%s/%s", dirname, title);
    log_event(CPDEBUG, "output filename created: %s", outfile);
 
-   size = strlen(Conf_GSCall) + strlen(Conf_GhostScript) + strlen(Conf_PDFVer) + strlen(outfile) + strlen(spoolfile) + strlen(Conf_Resolution) + 3 + 7;
+   size = strlen(Conf_GSCall(cfg)) + strlen(Conf_GhostScript(cfg)) + strlen(Conf_PDFVer(cfg)) + strlen(outfile) + strlen(spoolfile) + strlen(Conf_Resolution(cfg)) + 3 + 7;
    gscall = calloc(size, sizeof (char));
    if (gscall == NULL)
    {
@@ -911,7 +914,7 @@ main(int argc, char *argv[])
       close_log();
       return 5;
    }
-   char* res = calloc(strlen(Conf_Resolution) + 3, sizeof (char));
+   char* res = calloc(strlen(Conf_Resolution(cfg)) + 3, sizeof (char));
    if (res == NULL)
    {
       (void) fputs("CUPS-FAX: failed to allocate memory\n", stderr);
@@ -927,17 +930,17 @@ main(int argc, char *argv[])
       close_log();
       return 5;
    }
-   if (strlen(Conf_Resolution) > 0)
-      snprintf(res, strlen(Conf_Resolution) + 3, "-r%s", Conf_Resolution);
-   snprintf(gscall, size, Conf_GSCall, Conf_GhostScript, Conf_PDFVer, outfile, res, spoolfile);
+   if (strlen(Conf_Resolution(cfg)) > 0)
+      snprintf(res, strlen(Conf_Resolution(cfg)) + 3, "-r%s", Conf_Resolution(cfg));
+   snprintf(gscall, size, Conf_GSCall(cfg), Conf_GhostScript(cfg), Conf_PDFVer(cfg), outfile, res, spoolfile);
    log_event(CPDEBUG, "ghostscript commandline built: %s", gscall);
 
    (void) unlink(outfile);
    log_event(CPDEBUG, "(old) output file unlinked: %s", outfile);
 
-   if (putenv(Conf_GSTmp))
+   if (putenv(Conf_GSTmp(cfg)))
    {
-      log_event(CPERROR, "insufficient space in environment to set TMPDIR: %s", Conf_GSTmp);
+      log_event(CPERROR, "insufficient space in environment to set TMPDIR: %s", Conf_GSTmp(cfg));
 #ifndef CPTEST
       if (unlink(spoolfile))
          log_event(CPERROR, "failed to unlink spoolfile during clean-up: %s", spoolfile);
@@ -980,15 +983,15 @@ main(int argc, char *argv[])
       else
          log_event(CPDEBUG, "file mode set for user output: %s", outfile);
 
-      if (strlen(Conf_PostProcessing))
+      if (strlen(Conf_PostProcessing(cfg)))
       {
-         size = strlen(Conf_PostProcessing) + strlen(outfile) + strlen(passwd->pw_name) + strlen(argv[2]) + 4;
+         size = strlen(Conf_PostProcessing(cfg)) + strlen(outfile) + strlen(passwd->pw_name) + strlen(argv[2]) + 4;
          ppcall = calloc(size, sizeof (char));
          if (ppcall == NULL)
             log_event(CPERROR, "failed to allocate memory for postprocessing (non fatal)");
          else
          {
-            snprintf(ppcall, size, "%s %s %s %s", Conf_PostProcessing, outfile, passwd->pw_name, argv[2]);
+            snprintf(ppcall, size, "%s %s %s %s", Conf_PostProcessing(cfg), outfile, passwd->pw_name, argv[2]);
             log_event(CPDEBUG, "postprocessing commandline built: %s", ppcall);
             size = system(ppcall);
             snprintf(title, BUFSIZE, "%d", size);
@@ -1011,7 +1014,7 @@ main(int argc, char *argv[])
 #endif
    char errortext[256];
    errortext[0] = '\0';
-   int ec = call_stub(outfile, errortext);
+   int ec = call_stub(cfg, outfile, errortext);
    if (ec != 0) {
       log_event(CPERROR, "call of stub failed: error %d: %s", ec, errortext);
    }

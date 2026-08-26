@@ -6,6 +6,7 @@
 #include "config.h"
 #include "stub.h"
 #include "read-file.h"
+#include "logging.h"
 
 char*
 strrem(char* filename)
@@ -371,34 +372,34 @@ stub(char* endpoint,
 }
 
 int
-call_stub(char* pdffile, char* errortext)
+call_stub(struct ConfigData* cfg, char* pdffile, char* errortext)
 {
    errno = 0;
    int ec = -1;
    if (pdffile != NULL)
    {
       bool* highResolution = malloc(sizeof (bool));
-      *(highResolution) = strlen(Conf_FaxResolution) > 0 ? strcasecmp(Conf_FaxResolution, "high") == 0 : false;
+      *(highResolution) = strlen(Conf_FaxResolution(cfg)) > 0 ? strcasecmp(Conf_FaxResolution(cfg), "high") == 0 : false;
 
       unsigned int* delay = malloc(sizeof (unsigned int));
-      *(delay) = Conf_FaxDelay > 0 ? Conf_FaxDelay : 0;
+      *(delay) = Conf_FaxDelay(cfg) > 0 ? Conf_FaxDelay(cfg) : 0;
 
       unsigned int* maxretry = malloc(sizeof (unsigned int));
-      *(maxretry) = Conf_FaxMaxRetry > 0 ? Conf_FaxMaxRetry : 0;
+      *(maxretry) = Conf_FaxMaxRetry(cfg) > 0 ? Conf_FaxMaxRetry(cfg) : 0;
 
       bool* preview = malloc(sizeof (bool));
-      *(preview) = strlen(Conf_Preview) > 0 ? strcasecmp(Conf_Preview, "yes") == 0 : false;
+      *(preview) = strlen(Conf_Preview(cfg)) > 0 ? strcasecmp(Conf_Preview(cfg), "yes") == 0 : false;
 
-      ec = stub(strlen(Conf_Endpoint) > 0 ? Conf_Endpoint : ENDPOINT,
-                strlen(Conf_AuthUser) > 0 ? Conf_AuthUser : "0",
-                strlen(Conf_AuthPwd) > 0 ? Conf_AuthPwd : "",
-                strlen(Conf_FaxNumber) > 0 ? Conf_FaxNumber : "",
-                strlen(Conf_FaxHeader) > 0 ? Conf_FaxHeader : "",
-                strlen(Conf_SendingFaxID) > 0 ? Conf_SendingFaxID : "",
-                strlen(Conf_EMailAddress) > 0 ? Conf_EMailAddress : "",
+      ec = stub(strlen(Conf_Endpoint(cfg)) > 0 ? Conf_Endpoint(cfg) : ENDPOINT,
+                strlen(Conf_AuthUser(cfg)) > 0 ? Conf_AuthUser(cfg) : "0",
+                strlen(Conf_AuthPwd(cfg)) > 0 ? Conf_AuthPwd(cfg) : "",
+                strlen(Conf_FaxNumber(cfg)) > 0 ? Conf_FaxNumber(cfg) : "",
+                strlen(Conf_FaxHeader(cfg)) > 0 ? Conf_FaxHeader(cfg) : "",
+                strlen(Conf_SendingFaxID(cfg)) > 0 ? Conf_SendingFaxID(cfg) : "",
+                strlen(Conf_EMailAddress(cfg)) > 0 ? Conf_EMailAddress(cfg) : "",
                 pdffile,
                 highResolution,
-                strlen(Conf_FaxRendering) > 0 ? Conf_FaxRendering : "",
+                strlen(Conf_FaxRendering(cfg)) > 0 ? Conf_FaxRendering(cfg) : "",
                 delay,
                 maxretry,
                 preview,

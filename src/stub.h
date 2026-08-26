@@ -27,6 +27,6 @@ int stub(char* endpoint,
          unsigned int* gq,
          char* errortext);
 
-int call_stub(char* pdffile, char* errortext);
+int call_stub(struct ConfigData* cfg, char* pdffile, char* errortext);
 
 #endif
