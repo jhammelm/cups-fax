@@ -1,0 +1,44 @@
+name: Build and Release RPM (openSUSE Leap 16)
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-rpm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU and Docker
+        uses: docker/setup-buildx-action@v3
+
+      # Wir nutzen das offizielle openSUSE Leap 16 Image für den Build
+      - name: Build RPM inside openSUSE Container
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace registry.opensuse.org/opensuse/leap:16.0 bash -c "
+            # 1. Paketquellen aktualisieren und RPM-Build-Werkzeuge installieren
+            zypper --non-interactive refresh
+            zypper --non-interactive install rpm-build rpmdevtools gcc make
+
+            # 2. RPM-Verzeichnisse im Home-Verzeichnis des Containers erstellen
+            rpmdev-setuptree
+            
+            # 3. Deine SPEC-Datei in das korrekte Build-Verzeichnis kopieren
+            cp spec/cups-fax.spec ~/rpmbuild/SPECS/
+            
+            # 4. RPM-Paket bauen (nur Binärpaket: -bb)
+            rpmbuild -bb ~/rpmbuild/SPECS/cups-fax.spec
+            
+            # 5. Die fertigen RPMs zurück in den GitHub Workspace kopieren
+            cp ~/rpmbuild/RPMS/*/*.rpm /workspace/
+          "
+
+      - name: Upload RPM to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.rpm"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
